@@ -38,26 +38,44 @@ def main(argv=None):
 
     args = parser.parse_args(argv)
 
-    include_ci = not args.no_ci
-    if args.cmd == "overall":
-        df = get_overall(args.project, months=args.months, granularity=args.granularity, include_ci=include_ci, api_key=args.api_key)
-    else:
-        df = get_versions(args.project, versions=args.versions, months=args.months, granularity=args.granularity, include_ci=include_ci, api_key=args.api_key)
+    try:
+        include_ci = not args.no_ci
+        if args.cmd == "overall":
+            df = get_overall(
+                args.project,
+                months=args.months,
+                granularity=args.granularity,
+                include_ci=include_ci,
+                api_key=args.api_key,
+            )
+        else:
+            df = get_versions(
+                args.project,
+                versions=args.versions,
+                months=args.months,
+                granularity=args.granularity,
+                include_ci=include_ci,
+                api_key=args.api_key,
+            )
 
-    _print_df(df, args.fmt)
+        _print_df(df, args.fmt)
 
-    if args.plot and not df.empty:
-        plt.figure()
-        for label, part in df.groupby("label"):
-            part = part.sort_values("date")
-            plt.plot(part["date"], part["downloads"], label=label)
-        plt.legend()
-        plt.xlabel("date")
-        plt.ylabel("downloads")
-        plt.title(f"{args.project} downloads")
-        plt.xticks(rotation=45, ha="right")
-        plt.tight_layout()
-        plt.show()
+        if args.plot and not df.empty:
+            plt.figure()
+            for label, part in df.groupby("label"):
+                part = part.sort_values("date")
+                plt.plot(part["date"], part["downloads"], label=label)
+            plt.legend()
+            plt.xlabel("date")
+            plt.ylabel("downloads")
+            plt.title(f"{args.project} downloads")
+            plt.xticks(rotation=45, ha="right")
+            plt.tight_layout()
+            plt.show()
+        return 0
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
 if __name__ == "__main__":
     sys.exit(main())

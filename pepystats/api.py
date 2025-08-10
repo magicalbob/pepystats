@@ -64,7 +64,7 @@ def _apply_granularity(df: pd.DataFrame, granularity: str) -> pd.DataFrame:
         g["date"] = _to_naive_utc(g["date"])
         g = g.set_index("date").sort_index()
         if granularity == "weekly":
-            res = g["downloads"].resample("W").sum()
+            res = g["downloads"].resample("W-SAT").sum()
         elif granularity == "monthly":
             res = g["downloads"].resample("MS").sum()
         elif granularity == "yearly":
