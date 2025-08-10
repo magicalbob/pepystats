@@ -1,5 +1,6 @@
 from __future__ import annotations
-import argparse, sys
+import argparse
+import sys
 from .api import get_overall, get_versions, to_markdown, to_csv
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -46,7 +47,7 @@ def main(argv=None):
     _print_df(df, args.fmt)
 
     if args.plot and not df.empty:
-        fig = plt.figure()
+        plt.figure()
         for label, part in df.groupby("label"):
             part = part.sort_values("date")
             plt.plot(part["date"], part["downloads"], label=label)
