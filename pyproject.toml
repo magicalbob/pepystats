@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pepystats"
+version = "0.1.0"
+description = "Lightweight Python client & CLI for pepy.tech download stats"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{name="You"}, {name="ChatGPT"}]
+dependencies = [
+  "requests>=2.31.0",
+  "pandas>=2.0.0",
+  "matplotlib>=3.7.0",
+  "tabulate>=0.9.0"
+]
+
+[project.urls]
+Homepage = "https://pepy.tech"
+Repository = "https://example.com/your/pepystats"
+
+[project.scripts]
+pepystats = "pepystats.cli:main"
