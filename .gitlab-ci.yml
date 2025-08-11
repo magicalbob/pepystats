@@ -1,0 +1,62 @@
+stages:
+  - test
+  - scan
+  - build
+  - publish
+
+variables:
+  SONAR_SCANNER_VERSION: "5.0.1.3006"
+  GIT_STRATEGY: clone
+  GIT_DEPTH: "0"
+
+test_python_job:
+  image: docker.ellisbs.co.uk:5190/ubuntu:24.04
+  stage: test
+  tags: [linux]
+  script:
+    - python3 -m venv /tmp/venv
+    - source /tmp/venv/bin/activate
+    - pip install -e ".[dev]"
+    - python3 -m pytest -q --cov=pepystats --cov-report=term --cov-report=xml
+  artifacts:
+    paths:
+      - coverage.xml
+
+scan_job:
+  image: docker.ellisbs.co.uk:5190/ubuntu:24.04
+  stage: scan
+  tags: [linux]
+  script:
+    - pushd ~
+    - curl -o /tmp/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}.zip
+    - unzip -n /tmp/sonar-scanner.zip
+    - popd
+    - ~/sonar-scanner-${SONAR_SCANNER_VERSION}/bin/sonar-scanner -Dsonar.token=$SONAR_TOKEN
+  dependencies:
+    - test_python_job
+
+build:
+  image: docker.ellisbs.co.uk:5190/ubuntu:24.04
+  stage: build
+  tags: [linux]
+  script:
+    - python3 -m venv /tmp/venv
+    - source /tmp/venv/bin/activate
+    - pip install -e ".[dev]"
+    - python3 -m build
+  artifacts:
+    paths:
+      - dist/*.tar.gz
+      - dist/*.whl
+
+publish:
+  image: docker.ellisbs.co.uk:5190/ubuntu:24.04
+  stage: publish
+  tags: [linux]
+  script:
+    - python3 -m venv /tmp/venv
+    - source /tmp/venv/bin/activate
+    - pip install -e ".[dev]"
+    - twine upload --repository-url https://nexus.ellisbs.co.uk/repository/pypi-hosted/ --username admin --password $PYPI_PASSWORD dist/*
+  dependencies:
+    - build
