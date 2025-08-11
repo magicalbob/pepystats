@@ -1,3 +1,4 @@
 pepystats.egg-info
 pepystats/__pycache__
 .qlty
+.chunkwrap_state
