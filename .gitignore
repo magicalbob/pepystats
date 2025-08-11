@@ -3,3 +3,5 @@ pepystats/__pycache__
 .qlty
 .chunkwrap_state
 venv
+.coverage
+coverage.xml
