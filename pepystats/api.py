@@ -6,7 +6,6 @@ from typing import Iterable, Optional, Dict, Any
 import pandas as pd
 import requests
 
-# Public API base
 BASE = "https://api.pepy.tech"
 
 
@@ -16,23 +15,10 @@ def _headers(api_key: Optional[str]) -> Dict[str, str]:
 
 
 def _parse_v2_downloads(data: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    v2 response example:
-    {
-      "total_downloads": 123,
-      "id": "project",
-      "versions": ["1.0", "2.0"],
-      "downloads": {
-        "2023-08-29": {"1.0": 10, "2.0": 5},
-        "2023-08-28": {"1.0": 7, "2.0": 3}
-      }
-    }
-    """
     return data.get("downloads") or {}
 
 
 def _to_naive_utc(series: pd.Series) -> pd.Series:
-    """Parse dates as UTC, then drop tz to make them tz-naive (consistent comparisons)."""
     return pd.to_datetime(series, utc=True).dt.tz_localize(None)
 
 
@@ -41,7 +27,6 @@ def _trim_months(df: pd.DataFrame, months: Optional[int]) -> pd.DataFrame:
         return df
     out = df.copy()
     out["date"] = _to_naive_utc(out["date"])
-    # Cutoff is "now in UTC", normalized to midnight, then made naive
     now_naive = pd.Timestamp.now(tz="UTC").normalize().tz_localize(None)
     cutoff = now_naive - pd.DateOffset(months=months)
     out = out[out["date"] >= cutoff]
@@ -50,15 +35,10 @@ def _trim_months(df: pd.DataFrame, months: Optional[int]) -> pd.DataFrame:
 
 
 def _apply_granularity(df: pd.DataFrame, granularity: str) -> pd.DataFrame:
-    """
-    Free API is daily-only; this provides client-side resampling.
-    granularity: daily | weekly | monthly | yearly
-    """
     if df.empty or granularity == "daily":
         return df
 
     out_frames = []
-    # Work with tz-naive UTC consistently
     for label, grp in df.groupby("label"):
         g = grp.copy()
         g["date"] = _to_naive_utc(g["date"])
@@ -70,7 +50,7 @@ def _apply_granularity(df: pd.DataFrame, granularity: str) -> pd.DataFrame:
         elif granularity == "yearly":
             res = g["downloads"].resample("YS").sum()
         else:
-            return df  # unknown granularity → leave as-is
+            return df
         oo = res.reset_index()
         oo["label"] = label
         out_frames.append(oo)
@@ -81,18 +61,17 @@ def _apply_granularity(df: pd.DataFrame, granularity: str) -> pd.DataFrame:
     return out[["date", "downloads", "label"]]
 
 
-def get_overall(
+def get_detailed(
     project: str,
     *,
     months: int = 3,
     granularity: str = "daily",
-    include_ci: bool = True,  # kept for CLI parity; not used by public v2
+    include_ci: bool = True,  # placeholder for parity; not used by public v2
     api_key: Optional[str] = None,
 ) -> pd.DataFrame:
     """
-    Overall downloads across all versions (public API v2, daily; resampled client-side).
-
-    Returns DataFrame with columns: [date, downloads, label], where label='total'.
+    Per-day (optionally resampled) totals across all versions.
+    Returns tidy DataFrame: columns [date, downloads, label='total'].
     """
     url = f"{BASE}/api/v2/projects/{project}"
     r = requests.get(url, headers=_headers(api_key), timeout=30)
@@ -115,19 +94,30 @@ def get_overall(
     return df
 
 
+def get_overall(
+    project: str,
+    *,
+    months: int = 3,
+    include_ci: bool = True,   # placeholder for parity; not used by public v2
+    api_key: Optional[str] = None,
+) -> int:
+    """
+    Sum of downloads over the selected window across all versions.
+    Returns a single integer.
+    """
+    df = get_detailed(project, months=months, granularity="daily", include_ci=include_ci, api_key=api_key)
+    return int(df["downloads"].sum()) if not df.empty else 0
+
+
 def get_versions(
     project: str,
     *,
     versions: Iterable[str],
     months: int = 3,
     granularity: str = "daily",
-    include_ci: bool = True,  # kept for CLI parity; not used by public v2
+    include_ci: bool = True,
     api_key: Optional[str] = None,
 ) -> pd.DataFrame:
-    """
-    Per-version daily series (public API v2) filtered to the requested versions.
-    Returns DataFrame with columns: [date, downloads, label] where label=<version>.
-    """
     url = f"{BASE}/api/v2/projects/{project}"
     r = requests.get(url, headers=_headers(api_key), timeout=30)
     if r.status_code == 401:
