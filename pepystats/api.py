@@ -34,30 +34,68 @@ def _trim_months(df: pd.DataFrame, months: Optional[int]) -> pd.DataFrame:
     return out
 
 
-def _apply_granularity(df: pd.DataFrame, granularity: str) -> pd.DataFrame:
-    if df.empty or granularity == "daily":
+def _complete_range(df: pd.DataFrame, freq: str) -> pd.DataFrame:
+    """For each label, reindex to a complete date range and fill zeros."""
+    if df.empty:
         return df
 
-    out_frames = []
+    frames = []
     for label, grp in df.groupby("label"):
         g = grp.copy()
         g["date"] = _to_naive_utc(g["date"])
         g = g.set_index("date").sort_index()
-        if granularity == "weekly":
-            res = g["downloads"].resample("W-SAT").sum()
-        elif granularity == "monthly":
-            res = g["downloads"].resample("MS").sum()
-        elif granularity == "yearly":
-            res = g["downloads"].resample("YS").sum()
-        else:
-            return df
-        oo = res.reset_index()
-        oo["label"] = label
-        out_frames.append(oo)
 
-    out = pd.concat(out_frames, ignore_index=True) if out_frames else pd.DataFrame(columns=["date", "downloads", "label"])
-    if not out.empty:
-        out["date"] = out["date"].dt.strftime("%Y-%m-%d")
+        # Build a complete index from min..max for this label
+        start = g.index.min().normalize()
+        end = g.index.max().normalize()
+        full_idx = pd.date_range(start, end, freq=freq)
+
+        s = g["downloads"].astype("int64").reindex(full_idx, fill_value=0)
+        out = s.reset_index().rename(columns={"index": "date"})
+        out["label"] = label
+        frames.append(out)
+
+    out = pd.concat(frames, ignore_index=True)
+    out["date"] = out["date"].dt.strftime("%Y-%m-%d")
+    return out[["date", "downloads", "label"]]
+
+
+
+def _apply_granularity(df: pd.DataFrame, granularity: str) -> pd.DataFrame:
+    if df.empty:
+        return df
+
+    if granularity == "daily":
+        return _complete_range(df, "D")
+
+    freq = None
+    if granularity == "weekly":
+        freq = "W-SAT"
+    elif granularity == "monthly":
+        freq = "MS"
+    elif granularity == "yearly":
+        freq = "YS"
+    else:
+        return df  # unknown → leave as-is
+
+    frames = []
+    for label, grp in df.groupby("label"):
+        g = grp.copy()
+        g["date"] = _to_naive_utc(g["date"])
+        g = g.set_index("date").sort_index()
+
+        res = g["downloads"].resample(freq).sum()
+
+        # Ensure empty periods are present with zero
+        full_idx = pd.date_range(res.index.min(), res.index.max(), freq=freq)
+        res = res.reindex(full_idx, fill_value=0)
+
+        out = res.reset_index().rename(columns={"index": "date"})
+        out["label"] = label
+        frames.append(out)
+
+    out = pd.concat(frames, ignore_index=True)
+    out["date"] = out["date"].dt.strftime("%Y-%m-%d")
     return out[["date", "downloads", "label"]]
 
 
