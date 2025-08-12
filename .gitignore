@@ -1,7 +1,9 @@
 pepystats.egg-info
 pepystats/__pycache__
+tests/__pycache__
 .qlty
 .chunkwrap_state
 venv
 .coverage
 coverage.xml
+dist

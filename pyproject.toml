@@ -8,8 +8,21 @@ version = "0.1.0"
 description = "Lightweight Python client & CLI for pepy.tech download stats"
 readme = "README.md"
 requires-python = ">=3.8"
-license = { text = "MIT" }
-authors = [{name="You"}, {name="ChatGPT"}]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Operating System :: OS Independent",
+  "Topic :: Software Development :: Build Tools",
+  "Topic :: Utilities"
+]
+license = { file = "LICENSE" }
+authors = [{name="Ian Ellis"}, {email="ellisiana@gmail.com"}]
 dependencies = [
   "requests>=2.31.0",
   "pandas>=2.0.0",
@@ -26,8 +39,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://pepy.tech"
-Repository = "https://example.com/your/pepystats"
+Homepage = "https://github.com/magicalbob/pepystats/wiki"
+Repository = "https://github.com/magicalbob/pepystats"
+Issues = "https://github.com/magicalbob/pepystats/issues"
+Changelog = "https://github.com/magicalbob/pepystats/releases"
 
 [project.scripts]
 pepystats = "pepystats.cli:main"
