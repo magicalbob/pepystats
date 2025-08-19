@@ -52,3 +52,21 @@ def test_cli_handles_http_error(monkeypatch):
     payload = {}
     rc, out = _run_cli(["overall", "pkg", "--months", "0"], payload, status=500)
     assert rc not in (None, 0)
+
+def test_cli_recent_csv(monkeypatch):
+    os.environ["PEPY_API_KEY"] = "dummy"
+    payload = {
+        "downloads": {
+            "2025-08-01": {"1.0": 1},
+            "2025-08-08": {"1.0": 2},
+            "2025-08-09": {"1.0": 3},
+        }
+    }
+    import pepystats.api as api
+    cf = __import__("tests.conftest", fromlist=[""])
+    monkeypatch.setattr(api.requests, "get", lambda *a, **k: cf.make_response(payload))
+    monkeypatch.setattr(api.pd.Timestamp, "now", staticmethod(lambda tz=None: cf.fixed_now().tz_localize(None)))
+    rc, out = _run_cli(["recent", "chunkwrap", "--fmt", "csv"], payload)
+    assert rc in (None, 0)
+    assert "2025-08-01" not in out
+    assert "2025-08-08" in out

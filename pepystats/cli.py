@@ -1,7 +1,7 @@
 from __future__ import annotations
 import argparse
 import sys
-from .api import get_overall, get_detailed, get_versions, to_markdown, to_csv
+from .api import get_overall, get_detailed, get_versions, get_recent, to_markdown, to_csv
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -50,6 +50,11 @@ def main(argv=None):
     _detailed_args(p_versions)
     p_versions.add_argument("--versions", nargs="+", required=True, help="One or more version strings")
 
+    # recent: last 7 days
+    p_recent = sub.add_parser("recent", help="Downloads over the last 7 days")
+    _common_args(p_recent)
+    _detailed_args(p_recent)
+
     args = parser.parse_args(argv)
 
     try:
@@ -88,6 +93,27 @@ def main(argv=None):
                 plt.xlabel("date")
                 plt.ylabel("downloads")
                 plt.title(f"{args.project} downloads")
+                plt.xticks(rotation=45, ha="right")
+                plt.tight_layout()
+                plt.show()
+            return 0
+
+        elif args.cmd == "recent":
+            df = get_recent(
+                args.project,
+                granularity=args.granularity,
+                api_key=args.api_key,
+            )
+            _print_df(df, args.fmt)
+            if args.plot and not df.empty:
+                plt.figure()
+                for label, part in df.groupby("label"):
+                    part = part.sort_values("date")
+                    plt.plot(part["date"], part["downloads"], label=label)
+                plt.legend()
+                plt.xlabel("date")
+                plt.ylabel("downloads")
+                plt.title(f"{args.project} downloads (last 7 days)")
                 plt.xticks(rotation=45, ha="right")
                 plt.tight_layout()
                 plt.show()

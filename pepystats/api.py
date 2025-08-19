@@ -178,6 +178,26 @@ def get_versions(
     return df
 
 
+def _trim_days(df: pd.DataFrame, days: int = 7) -> pd.DataFrame:
+    if df.empty or days <= 0:
+        return df
+    df["date"] = pd.to_datetime(df["date"]).dt.tz_localize(None)  # Make date column timezone-naive
+    cutoff = pd.Timestamp.now().normalize() - pd.Timedelta(days=days)  # Also timezone-naive
+    df = df[df["date"] >= cutoff].copy()
+    df["date"] = df["date"].dt.strftime("%Y-%m-%d")
+    return df
+
+
+def get_recent(
+    project: str,
+    *,
+    granularity: str = "daily",
+    api_key: Optional[str] = None,
+) -> pd.DataFrame:
+    df = get_detailed(project, months=0, granularity=granularity, api_key=api_key)
+    return _trim_days(df, days=7)
+
+
 def to_markdown(df: pd.DataFrame) -> str:
     if df.empty:
         return "_no data_"

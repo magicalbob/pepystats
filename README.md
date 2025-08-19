@@ -76,6 +76,17 @@ pepystats detailed chunkwrap --months 3 --granularity weekly --fmt csv
 pepystats detailed chunkwrap --months 1 --plot`
 ```
 
+### `recent` — last 7 days of downloads
+
+```bash
+pepystats recent chunkwrap --fmt md
+pepystats recent chunkwrap --granularity weekly --plot
+```
+
+- Uses the same formatting and plotting options as detailed
+
+- Always trims to the last 7 calendar days
+
 ### `versions` --- per-version series
 
 ```bash
