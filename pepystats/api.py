@@ -45,7 +45,6 @@ def _complete_range(df: pd.DataFrame, freq: str) -> pd.DataFrame:
         g["date"] = _to_naive_utc(g["date"])
         g = g.set_index("date").sort_index()
 
-        # Build a complete index from min..max for this label
         start = g.index.min().normalize()
         end = g.index.max().normalize()
         full_idx = pd.date_range(start, end, freq=freq)
@@ -58,7 +57,6 @@ def _complete_range(df: pd.DataFrame, freq: str) -> pd.DataFrame:
     out = pd.concat(frames, ignore_index=True)
     out["date"] = out["date"].dt.strftime("%Y-%m-%d")
     return out[["date", "downloads", "label"]]
-
 
 
 def _apply_granularity(df: pd.DataFrame, granularity: str) -> pd.DataFrame:
@@ -86,7 +84,6 @@ def _apply_granularity(df: pd.DataFrame, granularity: str) -> pd.DataFrame:
 
         res = g["downloads"].resample(freq).sum()
 
-        # Ensure empty periods are present with zero
         full_idx = pd.date_range(res.index.min(), res.index.max(), freq=freq)
         res = res.reindex(full_idx, fill_value=0)
 
@@ -104,7 +101,6 @@ def get_detailed(
     *,
     months: int = 3,
     granularity: str = "daily",
-    include_ci: bool = True,  # placeholder for parity; not used by public v2
     api_key: Optional[str] = None,
 ) -> pd.DataFrame:
     """
@@ -136,14 +132,13 @@ def get_overall(
     project: str,
     *,
     months: int = 3,
-    include_ci: bool = True,   # placeholder for parity; not used by public v2
     api_key: Optional[str] = None,
 ) -> int:
     """
     Sum of downloads over the selected window across all versions.
     Returns a single integer.
     """
-    df = get_detailed(project, months=months, granularity="daily", include_ci=include_ci, api_key=api_key)
+    df = get_detailed(project, months=months, granularity="daily", api_key=api_key)
     return int(df["downloads"].sum()) if not df.empty else 0
 
 
@@ -153,7 +148,6 @@ def get_versions(
     versions: Iterable[str],
     months: int = 3,
     granularity: str = "daily",
-    include_ci: bool = True,
     api_key: Optional[str] = None,
 ) -> pd.DataFrame:
     url = f"{BASE}/api/v2/projects/{project}"
@@ -181,8 +175,8 @@ def get_versions(
 def _trim_days(df: pd.DataFrame, days: int = 7) -> pd.DataFrame:
     if df.empty or days <= 0:
         return df
-    df["date"] = pd.to_datetime(df["date"]).dt.tz_localize(None)  # Make date column timezone-naive
-    cutoff = pd.Timestamp.now().normalize() - pd.Timedelta(days=days)  # Also timezone-naive
+    df["date"] = pd.to_datetime(df["date"]).dt.tz_localize(None)
+    cutoff = pd.Timestamp.now().normalize() - pd.Timedelta(days=days)
     df = df[df["date"] >= cutoff].copy()
     df["date"] = df["date"].dt.strftime("%Y-%m-%d")
     return df
