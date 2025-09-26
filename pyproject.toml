@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pepystats"
-version = "0.2.0"
+version = "0.2.1"
 description = "Lightweight Python client & CLI for pepy.tech download stats"
 readme = "README.md"
 requires-python = ">=3.8"
